@@ -25,7 +25,15 @@ success_count=$(echo "$log_entries" | grep "CRON.*CMD" | wc -l)
 failure_count=$((total_count - success_count))
 
 # Collect detailed error information for failed cron jobs (based on common error messages)
-error_details=$(echo "$log_entries" | grep -i -E "error|failed|exit code" | sed 's/"/\\"/g')
+error_details=""
+while IFS= read -r line; do
+    if echo "$line" | grep -q "Error"; then
+        # Extract the error message and the CRON ID from the log entry
+        cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
+        error_msg=$(echo "$line" | sed -n 's/.*Error: \(.*\)/\1/p')
+        error_details="$error_details CRON[$cron_id] Error: $error_msg"
+    fi
+done <<< "$log_entries"
 error_details=${error_details:-""}  # Handle empty errors
 
 # Initialize variables for execution times and commands
