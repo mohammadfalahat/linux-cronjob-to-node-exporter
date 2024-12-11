@@ -2,7 +2,7 @@
 
 # Install cron_metrics
 ```
-sudo wget [https://raw.githubusercontent.com/mohammadfalahat/mssql-container-backup-script/refs/heads/main/mssqlbackup.sh](https://github.com/mohammadfalahat/linux-cronjob-to-node-exporter/raw/refs/heads/main/cron_metrics.sh)
+sudo wget https://github.com/mohammadfalahat/linux-cronjob-to-node-exporter/raw/refs/heads/main/cron_metrics.sh
 sudo chmod +x cron_metrics.sh
 sudo mv mssqlbackup.sh /usr/bin/cron_metrics
 sudo mkdir -p /var/lib/node_exporter/textfile_collector
