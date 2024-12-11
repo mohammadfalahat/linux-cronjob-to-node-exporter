@@ -7,13 +7,13 @@ current_time=$(date "+%b %d %H:%M" -d "5 minutes ago")
 # Get the current time for logging the current log's entries
 now_time=$(date "+%b %d %H:%M")
 
-# Filter syslog entries from the last 5 minutes and only get CRON-related lines
+# Filter cron.log entries from the last 5 minutes and only get CRON-related lines
 log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
   BEGIN { found=0 }
-  $0 ~ start_time { found=1 }
-  $0 ~ end_time && found { found=0 }
-  found && /CRON/ { print }
-' /var/log/syslog)
+  $0 >= start_time && found == 0 { found=1 }
+  $0 <= end_time && found == 1 { found=0 }
+  found { print }
+' /var/log/cron.log)
 
 # Count the number of cron jobs that ran in the last 5 minutes (only non-empty CRON entries)
 total_count=$(echo "$log_entries" | tr -s '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | wc -l)
