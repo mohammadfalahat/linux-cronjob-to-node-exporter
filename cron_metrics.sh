@@ -16,7 +16,7 @@ log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
 ' /var/log/syslog)
 
 # Remove empty lines
-log_entries=$(echo "$log_entries" | grep -v '^$')
+log_entries=$(echo "$log_entries" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')
 
 # Count the number of cron jobs that ran in the last 5 minutes (only non-empty CRON entries)
 total_count=$(echo "$log_entries" | wc -l)
@@ -28,7 +28,8 @@ success_count=$(echo "$log_entries" | grep "CRON.*CMD" | wc -l)
 failure_count=$((total_count - success_count))
 
 # Collect detailed error information for failed cron jobs (based on common error messages)
-error_details=$(echo "$log_entries" | grep -i -E "error|failed|exit code")
+error_details=$(echo "$log_entries" | grep -i -E "error|failed|exit code" | sed 's/"/\\"/g')
+error_details=${error_details:-""}  # Handle empty errors
 
 # Initialize variables for execution times and commands
 execution_times=""
@@ -39,7 +40,7 @@ while IFS= read -r line; do
     # Check if the line contains a CRON job start (CMD entry)
     if echo "$line" | grep -q "CRON.*CMD"; then
         # Extract the command executed (after CMD)
-        cmd=$(echo "$line" | sed -n 's/.*CMD \(.*\)/\1/p')
+        cmd=$(echo "$line" | sed -n 's/.*CMD \(.*\)/\1/p' | sed 's/"/\\"/g')
 
         # Find the next CRON entry timestamp (next job timestamp)
         next_line=$(echo "$log_entries" | grep -A 1 "$line" | tail -n 1)
