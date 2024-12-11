@@ -9,7 +9,7 @@ sudo mv mssqlbackup.sh /usr/bin/cron_metrics
 ```
 
 # Add metrics updater to `crontab`
-add cronjob with crontab -e or sudo vi /etc/crontab
+add cronjob with `crontab -e` or `sudo vi /etc/crontab`
 ```
 * * * * * /usr/bin/cron_metrics
 ```
