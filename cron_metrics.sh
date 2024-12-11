@@ -18,16 +18,14 @@ log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
 # Count the number of cron jobs that ran in the last 5 minutes (only non-empty CRON entries)
 total_count=$(echo "$log_entries" | tr -s '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | wc -l)
 
-# Count the number of successful cron jobs (exit code 0, assuming success)
-success_count=$(echo "$log_entries" | grep "CRON.*CMD" | wc -l)
-
-# Calculate failure count (difference between total and successful cron jobs)
-failure_count=$((total_count - success_count))
-
 # Collect detailed error information from mssqlbackup.log
 error_details=""
+error_count=0
 while IFS= read -r line; do
     if echo "$line" | grep -q "Error"; then
+        # Increment the error count for each error
+        ((error_count++))
+
         # Extract the error message and the CRON ID from the log entry
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
         error_msg=$(echo "$line" | sed -n 's/.*Error: \(.*\)/\1/p')
@@ -75,11 +73,11 @@ done <<< "$log_entries"
 cat <<EOF > /var/lib/node_exporter/textfile_collector/cron_metrics.prom
 # HELP cronjob_success_count Number of successful cron jobs in the last 5 minutes
 # TYPE cronjob_success_count counter
-cronjob_success_count $success_count
+cronjob_success_count $(($total_count - $error_count))
 
 # HELP cronjob_failure_count Number of failed cron jobs in the last 5 minutes
 # TYPE cronjob_failure_count counter
-cronjob_failure_count $failure_count
+cronjob_failure_count $error_count
 
 # HELP cronjob_error_details Detailed error descriptions for failed cron jobs in the last 5 minutes
 # TYPE cronjob_error_details gauge
@@ -96,8 +94,7 @@ EOF
 
 # Echo all variables to the console for debugging
 echo "Total Cron Jobs Processed in the Last 5 Minutes: $total_count"
-echo "Successful Cron Jobs: $success_count"
-echo "Failed Cron Jobs: $failure_count"
+echo "Error Count: $error_count"
 echo "Error Details for Failed Cron Jobs: $error_details"
 echo "Execution Times (in seconds) for Cron Jobs: $execution_times"
 echo "Commands Executed by Cron Jobs: $commands_executed"
