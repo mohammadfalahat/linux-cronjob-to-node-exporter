@@ -24,7 +24,7 @@ success_count=$(echo "$log_entries" | grep "CRON.*CMD" | wc -l)
 # Calculate failure count (difference between total and successful cron jobs)
 failure_count=$((total_count - success_count))
 
-# Collect detailed error information for failed cron jobs (based on common error messages)
+# Collect detailed error information from mssqlbackup.log
 error_details=""
 while IFS= read -r line; do
     if echo "$line" | grep -q "Error"; then
@@ -33,7 +33,7 @@ while IFS= read -r line; do
         error_msg=$(echo "$line" | sed -n 's/.*Error: \(.*\)/\1/p')
         error_details="$error_details CRON[$cron_id] Error: $error_msg"
     fi
-done <<< "$log_entries"
+done < /var/log/mssqlbackup.log
 error_details=${error_details:-""}  # Handle empty errors
 
 # Initialize variables for execution times and commands
