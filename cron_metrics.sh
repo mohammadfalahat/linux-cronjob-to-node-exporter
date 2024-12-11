@@ -15,11 +15,8 @@ log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
   found && /CRON/ { print }
 ' /var/log/syslog)
 
-# Remove empty lines
-log_entries=$(echo "$log_entries" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d')
-
 # Count the number of cron jobs that ran in the last 5 minutes (only non-empty CRON entries)
-total_count=$(echo "$log_entries" | wc -l)
+total_count=$(echo "$log_entries" | tr -s '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | wc -l)
 
 # Count the number of successful cron jobs (exit code 0, assuming success)
 success_count=$(echo "$log_entries" | grep "CRON.*CMD" | wc -l)
@@ -62,7 +59,7 @@ while IFS= read -r line; do
 
         # Store the execution time and command
         execution_times="$execution_times $duration"
-        commands_executed="$commands_executed \"$cmd\""
+        commands_executed="$commands_executed \\\"$cmd\\\""
     fi
 done <<< "$log_entries"
 
