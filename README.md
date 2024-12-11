@@ -1,4 +1,9 @@
 
+# Enable Cron logs
+```
+sudo sed -i 's/^#cron\.\*/cron.*/' /etc/rsyslog.d/50-default.conf
+sudo systemctl restart rsyslog
+```
 
 # Install cron_metrics
 ```
