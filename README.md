@@ -16,4 +16,7 @@ add cronjob with crontab -e or sudo vi /etc/crontab
 
 # Config Node_Exporter
 ```
+/usr/local/bin/node_exporter \
+  --web.config.file=/etc/node_exporter/web.yml \
+  --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
 ```
