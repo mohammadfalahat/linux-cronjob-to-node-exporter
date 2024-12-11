@@ -18,11 +18,15 @@ log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
 # Count the number of cron jobs that ran in the last 5 minutes (only non-empty CRON entries)
 total_count=$(echo "$log_entries" | tr -s '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | wc -l)
 
-# Collect detailed error information from mssqlbackup.log
+# Collect detailed error information from mssqlbackup.log (filtering by time range)
 error_details=""
 error_count=0
 while IFS= read -r line; do
-    if echo "$line" | grep -q "Error"; then
+    # Extract timestamp from the log entry
+    log_timestamp=$(echo "$line" | awk '{print $1" "$2" "$3}')
+
+    # Check if the log entry is within the time range (between current_time and now_time)
+    if [[ "$log_timestamp" > "$current_time" && "$log_timestamp" < "$now_time" ]] && echo "$line" | grep -q "Error"; then
         # Increment the error count for each error
         ((error_count++))
 
