@@ -95,8 +95,12 @@ cronjob_success_count $(($total_count - $error_count))
 # TYPE cronjob_failure_count counter
 cronjob_failure_count $error_count
 
+# HELP cronjob_error_details Details of errors in cron jobs (timestamp and message)
+# TYPE cronjob_error_details gauge
 $error_details
 
+# HELP cronjob_commands_executed Details of commands executed by cron jobs (timestamp and command)
+# TYPE cronjob_commands_executed gauge
 $commands_executed
 EOF
 
