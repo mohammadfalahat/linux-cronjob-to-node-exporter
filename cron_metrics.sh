@@ -107,8 +107,7 @@ if [[ -n "$error_details" ]]; then
     echo "Error details for failed cron jobs in the last 5 minutes:"
     echo "$error_details"
 else
-    echo "No errors found in the last 5 minutes. \n"
+    echo "No errors found in the last 5 minutes."
     echo "see result with:"
-    echo "cat /var/lib/node_exporter/textfile_collector/cron_metrics.prom"
-    echo "\n"
+    echo "    cat /var/lib/node_exporter/textfile_collector/cron_metrics.prom"
 fi
