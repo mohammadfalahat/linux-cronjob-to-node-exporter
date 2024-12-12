@@ -20,7 +20,7 @@ log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
 # Count the number of cron jobs that ran in the last 5 minutes (only non-empty CRON entries)
 total_count=$(echo "$log_entries" | tr -s '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | wc -l)
 
-# Collect detailed error information from mssqlbackup.log (filtering by time range)
+# Collect detailed error information from cron.error.log (filtering by time range)
 error_details=""
 error_count=0
 while IFS= read -r line; do
@@ -41,7 +41,7 @@ while IFS= read -r line; do
             error_details="${error_details}, \\\"CRON[$cron_id] Error: $error_msg\\\""
         fi
     fi
-done < /var/log/mssqlbackup.log
+done < /var/log/cron.error.log
 error_details=${error_details:-""}  # Handle empty errors
 
 # Initialize variables for execution times and commands
