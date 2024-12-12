@@ -78,7 +78,11 @@ while IFS= read -r line; do
 
         # Store the execution time and command with CRON ID
         execution_times="${execution_times} CRON[$cron_id]=$duration"
-        commands_executed="${commands_executed} \\\"CRON[$cron_id]: $cmd\\\""
+        if [[ -z "${commands_executed}" ]]; then
+            commands_executed="\\\"CRON[$cron_id]: $cmd\\\""
+        else
+            commands_executed="${commands_executed}, \\\"CRON[$cron_id]: $cmd\\\""
+        fi
     fi
 done <<< "$log_entries"
 
