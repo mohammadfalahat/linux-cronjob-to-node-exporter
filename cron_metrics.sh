@@ -55,12 +55,15 @@ while IFS= read -r line; do
         # Extract the command executed (after CMD)
         cmd=$(echo "$line" | sed -n 's/.*CMD \(.*\)/\1/p' | sed 's/"/\\"/g')
 
-        # Find the next CRON entry timestamp (next job timestamp)
-        next_line=$(echo "$log_entries" | grep -A 1 "$line" | tail -n 1)
-        next_timestamp=$(echo "$next_line" | awk '{print $1" "$2" "$3}')
+        # Extract CRON ID
+        cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
 
         # Get the timestamp for the current line (start time)
         current_timestamp=$(echo "$line" | awk '{print $1" "$2" "$3}')
+
+        # Find the next CRON entry timestamp (to estimate duration)
+        next_line=$(echo "$log_entries" | grep -A 1 "$line" | tail -n 1)
+        next_timestamp=$(echo "$next_line" | awk '{print $1" "$2" "$3}')
 
         # Calculate the duration (difference in seconds between start and end times)
         start_seconds=$(date -d "$current_timestamp" +%s)
@@ -73,9 +76,9 @@ while IFS= read -r line; do
             duration=$((end_seconds - start_seconds))
         fi
 
-        # Store the execution time and command
-        execution_times="$execution_times $duration"
-        commands_executed="$commands_executed \\\"$cmd\\\""
+        # Store the execution time and command with CRON ID
+        execution_times="${execution_times} CRON[$cron_id]=$duration"
+        commands_executed="${commands_executed} \\\"CRON[$cron_id]: $cmd\\\""
     fi
 done <<< "$log_entries"
 
@@ -93,11 +96,11 @@ cronjob_failure_count $error_count
 # TYPE cronjob_error_details gauge
 cronjob_error_details{errors="$error_details"} 1
 
-# HELP cronjob_execution_time_seconds Execution time of cron jobs in the last 5 minutes (in seconds)
+# HELP cronjob_execution_time_seconds Execution times of cron jobs (in seconds)
 # TYPE cronjob_execution_time_seconds gauge
 cronjob_execution_time_seconds{execution_times="$execution_times"} 1
 
-# HELP cronjob_commands_executed The exact commands executed by cron jobs in the last 5 minutes
+# HELP cronjob_commands_executed Commands executed by cron jobs with their CRON IDs
 # TYPE cronjob_commands_executed gauge
 cronjob_commands_executed{commands="$commands_executed"} 1
 EOF
@@ -108,6 +111,6 @@ if [[ -n "$error_details" ]]; then
     echo "$error_details"
 else
     echo "No errors found in the last 5 minutes."
-    echo "see result with:"
+    echo "See result with:"
     echo "    cat /var/lib/node_exporter/textfile_collector/cron_metrics.prom"
 fi
