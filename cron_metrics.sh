@@ -38,6 +38,7 @@ while IFS= read -r line; do
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
         error_msg=$(echo "$line" | sed -n 's/.*\(Error\|Fail\): \(.*\)/\2/pI')
         
+        
         # Format error details for Prometheus
         error_lines="$error_lines
 cronjob_error_details{errors=\"CRON[$cron_id] Error: $error_msg\"} 1"
@@ -81,11 +82,10 @@ $commands_executed
 EOF
 
 # Optional: Output the error details to the console (for debugging)
-if [[ -n "$error_details" ]]; then
-    echo "Error details for failed cron jobs in the last 5 minutes:"
-    echo -e "$error_details"
+if [[ "$error_count" -gt 0 ]]; then
+    echo "Number of errors for failed cron jobs in the last 5 minutes: $error_count"
 else
     echo "No errors found in the last 5 minutes."
-    echo "See result with:"
-    echo "    cat /var/lib/node_exporter/textfile_collector/cron_metrics.prom"
 fi
+echo "See result with:"
+echo "    cat /var/lib/node_exporter/textfile_collector/cron_metrics.prom"
