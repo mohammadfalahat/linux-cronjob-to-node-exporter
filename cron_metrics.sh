@@ -55,9 +55,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
         error_msg=$(echo "$line" | sed -n 's/.*\(Error\|Fail\): \(.*\)/\2/pI')
         
-        # Format error details for Prometheus
+        # Format error details for Prometheus with the log timestamp
         error_lines="$error_lines
-cronjob_error_details{errors=\"CRON[$cron_id] Error: $error_msg\"} 1"
+cronjob_error_details{timestamp=\"$log_timestamp\", errors=\"CRON[$cron_id] Error: $error_msg\"} 1"
     fi
 done < "$ERROR_LOGS"
 
@@ -69,6 +69,9 @@ commands_executed=""
 
 # Loop through each line of cron logs to extract command execution times and commands
 while IFS= read -r line; do
+    # Extract the log timestamp for this entry
+    log_timestamp=$(echo "$line" | awk '{print $1" "$2" "$3}')
+    
     # Check if the line contains a CRON job start (CMD entry)
     if echo "$line" | grep -q "CRON.*CMD"; then
         # Extract the command executed (after CMD)
@@ -77,9 +80,9 @@ while IFS= read -r line; do
         # Extract CRON ID
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
 
-        # Format the command details for Prometheus
+        # Format the command details for Prometheus with the log timestamp
         commands_executed="$commands_executed
-cronjob_commands_executed{commands=\"CRON[$cron_id]: $cmd\"} 1"
+cronjob_commands_executed{timestamp=\"$log_timestamp\", commands=\"CRON[$cron_id]: $cmd\"} 1"
     fi
 done <<< "$log_entries"
 
