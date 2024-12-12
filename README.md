@@ -16,7 +16,7 @@ sudo mv mssqlbackup.sh /usr/bin/cron_metrics
 # Add metrics updater to `crontab`
 add cronjob with `crontab -e` or `sudo vi /etc/crontab`
 ```
-* * * * * /usr/bin/cron_metrics
+* * * * * /usr/bin/cron_metrics      >> /var/log/cron.error.log 2>&1; echo " CRON[$$] finished " >> /var/log/cron.error.log;
 ```
 
 # Config Node_Exporter
