@@ -20,12 +20,29 @@ log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
 # Count the number of cron jobs that ran in the last 5 minutes (only non-empty CRON entries)
 total_count=$(echo "$log_entries" | tr -s '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | wc -l)
 
+# Define the log file path
+ERROR_LOGS="/var/log/cron.error.log"
+
 # Collect detailed error information from cron.error.log (filtering by time range)
 error_details=""
 error_count=0
 error_lines=""
 
-while IFS= read -r line; do
+while IFS= read -r line || [[ -n "$line" ]]; do
+
+    # If the line contains a CRON entry and we have a previous line, merge it
+    if [[ -n "$last_line" ]]; then
+        # Merge last_line and current line, removing the newline from last_line
+        line="$last_line$line"
+        last_line=""  # Reset last_line
+    fi
+
+    # Store the current line as `last_line` for checking against the next line
+    if [[ ! "$line" =~ CRON\[[0-9]+\] ]]; then
+        last_line="$line"
+        continue
+    fi
+
     # Extract timestamp from the log entry
     log_timestamp=$(echo "$line" | awk '{print $1" "$2" "$3}')
 
@@ -38,12 +55,12 @@ while IFS= read -r line; do
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
         error_msg=$(echo "$line" | sed -n 's/.*\(Error\|Fail\): \(.*\)/\2/pI')
         
-        
         # Format error details for Prometheus
         error_lines="$error_lines
 cronjob_error_details{errors=\"CRON[$cron_id] Error: $error_msg\"} 1"
     fi
-done < /var/log/cron.error.log
+done < "$ERROR_LOGS"
+
 error_details=${error_lines:-""}  # Handle empty errors
 
 # Initialize variables for execution times and commands
