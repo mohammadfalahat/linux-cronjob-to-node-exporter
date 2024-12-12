@@ -29,7 +29,6 @@ error_count=0
 error_lines=""
 
 while IFS= read -r line || [[ -n "$line" ]]; do
-
     # If the line contains a CRON entry and we have a previous line, merge it
     if [[ -n "$last_line" ]]; then
         # Merge last_line and current line, removing the newline from last_line
@@ -55,9 +54,9 @@ while IFS= read -r line || [[ -n "$line" ]]; do
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
         error_msg=$(echo "$line" | sed -n 's/.*\(Error\|Fail\): \(.*\)/\2/pI')
         
-        # Format error details for Prometheus with the log timestamp
+        # Format error details for Prometheus with the log timestamp and cron_id
         error_lines="$error_lines
-cronjob_error_details{timestamp=\"$log_timestamp\", errors=\"CRON[$cron_id] Error: $error_msg\"} 1"
+cronjob_error_details{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", errors=\"$error_msg\"} 1"
     fi
 done < "$ERROR_LOGS"
 
@@ -80,9 +79,9 @@ while IFS= read -r line; do
         # Extract CRON ID
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
 
-        # Format the command details for Prometheus with the log timestamp
+        # Format the command details for Prometheus with the log timestamp and cron_id
         commands_executed="$commands_executed
-cronjob_commands_executed{timestamp=\"$log_timestamp\", commands=\"CRON[$cron_id]: $cmd\"} 1"
+cronjob_commands_executed{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", commands=\"$cmd\"} 1"
     fi
 done <<< "$log_entries"
 
