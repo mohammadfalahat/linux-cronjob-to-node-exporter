@@ -9,10 +9,12 @@ now_time=$(date "+%b %d %H:%M")
 
 # Filter cron.log entries from the last 5 minutes and only get CRON-related lines
 log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
-  BEGIN { found=0 }
-  $0 >= start_time && found == 0 { found=1 }
-  $0 <= end_time && found == 1 { found=0 }
-  found { print }
+    {
+        log_timestamp = $1" "$2" "$3
+        if (log_timestamp >= start_time && log_timestamp <= end_time && /CRON/) {
+            print
+        }
+    }
 ' /var/log/cron.log)
 
 # Count the number of cron jobs that ran in the last 5 minutes (only non-empty CRON entries)
@@ -33,7 +35,11 @@ while IFS= read -r line; do
         # Extract the error message and the CRON ID from the log entry
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
         error_msg=$(echo "$line" | sed -n 's/.*Error: \(.*\)/\1/p')
-        error_details="$error_details CRON[$cron_id] Error: $error_msg"
+        if [[ -z "$error_details" ]]; then
+            error_details="\\\"CRON[$cron_id] Error: $error_msg\\\""
+        else
+            error_details="${error_details}, \\\"CRON[$cron_id] Error: $error_msg\\\""
+        fi
     fi
 done < /var/log/mssqlbackup.log
 error_details=${error_details:-""}  # Handle empty errors
