@@ -28,13 +28,13 @@ while IFS= read -r line; do
     log_timestamp=$(echo "$line" | awk '{print $1" "$2" "$3}')
 
     # Check if the log entry is within the time range (between current_time and now_time)
-    if [[ "$log_timestamp" > "$current_time" && "$log_timestamp" < "$now_time" ]] && echo "$line" | grep -q "Error"; then
+    if [[ "$log_timestamp" > "$current_time" && "$log_timestamp" < "$now_time" ]] && echo "$line" | grep -Eiq "(Error|Fail)"; then
         # Increment the error count for each error
         ((error_count++))
 
         # Extract the error message and the CRON ID from the log entry
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
-        error_msg=$(echo "$line" | sed -n 's/.*Error: \(.*\)/\1/p')
+        error_msg=$(echo "$line" | sed -n 's/.*\(Error\|Fail\): \(.*\)/\2/pI')
         if [[ -z "$error_details" ]]; then
             error_details="\\\"CRON[$cron_id] Error: $error_msg\\\""
         else
@@ -102,23 +102,13 @@ cronjob_execution_time_seconds{execution_times="$execution_times"} 1
 cronjob_commands_executed{commands="$commands_executed"} 1
 EOF
 
-# Echo all variables to the console for debugging
-echo "Total Cron Jobs Processed in the Last 5 Minutes: $total_count"
-echo "Error Count: $error_count"
-echo "Error Details for Failed Cron Jobs: $error_details"
-echo "Execution Times (in seconds) for Cron Jobs: $execution_times"
-echo "Commands Executed by Cron Jobs: $commands_executed"
-
 # Optional: Output the error details to the console (for debugging)
 if [[ -n "$error_details" ]]; then
     echo "Error details for failed cron jobs in the last 5 minutes:"
     echo "$error_details"
 else
-    echo "No errors found in the last 5 minutes."
+    echo "No errors found in the last 5 minutes. \n"
+    echo "see result with:"
+    echo "cat /var/lib/node_exporter/textfile_collector/cron_metrics.prom"
+    echo "\n"
 fi
-
-# Optional: Output execution times and commands for debugging purposes
-echo "Cron job execution times in the last 5 minutes (in seconds):"
-echo "$execution_times"
-echo "Cron job commands executed in the last 5 minutes:"
-echo "$commands_executed"
