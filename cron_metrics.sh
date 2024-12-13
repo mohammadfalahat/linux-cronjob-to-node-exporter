@@ -1,13 +1,13 @@
 #!/bin/bash
-# Script to collect cron job metrics for the last 5 minutes, including error details, execution times, and commands executed
+# Script to collect cron job metrics for the last 65 seconds, including error details, execution times, and commands executed
 
-# Get the timestamp for 5 minutes ago
-current_time=$(date "+%b %d %H:%M" -d "5 minutes ago")
+# Get the timestamp for 65 seconds ago
+current_time=$(date "+%b %d %H:%M" -d "65 seconds ago")
 
 # Get the current time for logging the current log's entries
 now_time=$(date "+%b %d %H:%M")
 
-# Filter cron.log entries from the last 5 minutes and only get CRON-related lines
+# Filter cron.log entries from the last 65 seconds and only get CRON-related lines
 log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
     {
         log_timestamp = $1" "$2" "$3
@@ -17,7 +17,7 @@ log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
     }
 ' /var/log/cron.log)
 
-# Count the number of cron jobs that ran in the last 5 minutes (only non-empty CRON entries)
+# Count the number of cron jobs that ran in the last 65 seconds (only non-empty CRON entries)
 total_count=$(echo "$log_entries" | tr -s '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | wc -l)
 
 # Define the log file path
@@ -87,11 +87,11 @@ done <<< "$log_entries"
 
 # Write the metrics to Node Exporter textfile collector
 cat <<EOF > /var/lib/node_exporter/textfile_collector/cron_metrics.prom
-# HELP cronjob_success_count Number of successful cron jobs in the last 5 minutes
+# HELP cronjob_success_count Number of successful cron jobs in the last 65 seconds
 # TYPE cronjob_success_count counter
 cronjob_success_count $(($total_count - $error_count))
 
-# HELP cronjob_failure_count Number of failed cron jobs in the last 5 minutes
+# HELP cronjob_failure_count Number of failed cron jobs in the last 65 seconds
 # TYPE cronjob_failure_count counter
 cronjob_failure_count $error_count
 
@@ -106,9 +106,9 @@ EOF
 
 # Optional: Output the error details to the console (for debugging)
 if [[ "$error_count" -gt 0 ]]; then
-    echo "Number of errors for failed cron jobs in the last 5 minutes: $error_count"
+    echo "Number of errors for failed cron jobs in the last 65 seconds: $error_count"
 else
-    echo "No errors found in the last 5 minutes."
+    echo "No errors found in the last 65 seconds."
 fi
 echo "See result with:"
 echo "    cat /var/lib/node_exporter/textfile_collector/cron_metrics.prom"
