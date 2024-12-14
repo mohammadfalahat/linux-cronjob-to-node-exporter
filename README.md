@@ -2,10 +2,11 @@
 
 ![Screenshot from 2024-12-12 16-18-10](https://github.com/user-attachments/assets/204d874d-bd36-4a78-a18a-1b69448d72e1)
 
-1. enable cron logs in syslog
-2. install cron metrics
-3. add collector directory flag to node exporter
-4. update cronjob tasks
+1.  install Cronjob Tracker ([https://github.com/mohammadfalahat/cronjob-tracker](https://github.com/mohammadfalahat/cronjob-tracker))
+2.  enable cron logs in syslog
+3. install cron metrics
+4. add collector directory flag to node exporter
+5. update cronjob tasks
 
 # Enable Cron logs
 ```
@@ -37,11 +38,11 @@ add cronjob with `crontab -e` or `sudo vi /etc/crontab`
 # Update Cronjob tasks
 you have to add this code to end of each cronjob command: 
 ```
- >> /var/log/cron.error.log 2>&1; echo " CRON[$$] finished" >> /var/log/cron.error.log
+  > /tmp/cron_$$.log 2>&1; /usr/bin/cron_tracker $? $$ < /tmp/cron_$$.log
 ```
 ```
 # for example turn:
 * * * * * /usr/bin/cron_metrics
 to
-* * * * * /usr/bin/cron_metrics >> /var/log/cron.error.log 2>&1; echo " CRON[$$] finished" >> /var/log/cron.error.log
+* * * * * /usr/bin/cron_metrics  > /tmp/cron_$$.log 2>&1; /usr/bin/cron_tracker $? $$ < /tmp/cron_$$.log
 ```
