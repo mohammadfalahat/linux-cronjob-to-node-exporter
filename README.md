@@ -18,7 +18,7 @@ sudo systemctl restart rsyslog
 sudo mkdir -p /var/lib/node_exporter/textfile_collector && cd /var/lib/node_exporter/textfile_collector
 sudo wget https://github.com/mohammadfalahat/linux-cronjob-to-node-exporter/raw/refs/heads/main/cron_metrics.sh
 sudo chmod +x cron_metrics.sh
-sudo mv mssqlbackup.sh /usr/bin/cron_metrics
+sudo mv cron_metrics.sh /usr/bin/cron_metrics
 ```
 
 # Add metrics updater to `crontab`
