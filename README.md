@@ -1,6 +1,6 @@
 ## Track how cronjobs are going with Grafana 
 
-![Screenshot from 2024-12-12 16-18-10](https://github.com/user-attachments/assets/204d874d-bd36-4a78-a18a-1b69448d72e1)
+![Screenshot from 2024-12-14 16-32-54](https://github.com/user-attachments/assets/a970736a-3ce7-42db-a830-d50188b018ce)
 
 1.  install Cronjob Tracker ([https://github.com/mohammadfalahat/cronjob-tracker](https://github.com/mohammadfalahat/cronjob-tracker))
 2.  enable cron logs in syslog
