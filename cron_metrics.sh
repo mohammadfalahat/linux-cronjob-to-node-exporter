@@ -32,7 +32,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     # If the line contains a CRON entry and we have a previous line, merge it
     if [[ -n "$last_line" ]]; then
         # Merge last_line and current line, removing the newline from last_line
-        line="$last_line$line"
+        line="$last_line $line"
         last_line=""  # Reset last_line
     fi
 
@@ -52,11 +52,12 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
         # Extract the error message and the CRON ID from the log entry
         cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
-        error_msg=$(echo "$line" | sed -n 's/.*\(Error\|Fail\): \(.*\)/\2/pI')
-        
+        error_msg=$(echo "$line" | sed -n 's/.*\[ERROR\]:\(.*\)CRON\[[0-9]*\] finished.*/\1/p' | sed 's/[[:space:]]*$//')
+        exit_code=$(echo "$line" | grep -oP 'Exit Code: \K[0-9]+')
+
         # Format error details for Prometheus with the log timestamp and cron_id
         error_lines="$error_lines
-cronjob_error_details{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", errors=\"$error_msg\"} 1"
+cronjob_error_details{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", message=\"$error_msg\", exit_code=\"$exit_code\"} 1"
     fi
 done < <(tail -n 500 "$ERROR_LOGS")
 
@@ -85,6 +86,47 @@ cronjob_commands_executed{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", co
     fi
 done <<< "$log_entries"
 
+# Collect success messages and success details
+SUCCESS_LOGS="/var/log/cron.success.log"
+success_details=""
+success_count=0
+success_lines=""
+
+# Process the success logs and extract the entire section between success message and CRON finish
+while IFS= read -r line || [[ -n "$line" ]]; do
+    # If the line contains a success message and we have a previous line, merge it
+    if [[ -n "$last_success_line" ]]; then
+        # Merge last_success_line and current line
+        line="$last_success_line $line"
+        last_success_line=""  # Reset last_success_line
+    fi
+
+    # Store the current line as `last_success_line` for checking against the next line
+    if [[ ! "$line" =~ CRON\[[0-9]+\] ]]; then
+        last_success_line="$line"
+        continue
+    fi
+
+    # Extract timestamp from the log entry
+    log_timestamp=$(echo "$line" | awk '{print $1" "$2" "$3}')
+
+    # Check if the log entry is within the time range (between current_time and now_time)
+    if [[ "$log_timestamp" > "$current_time" && "$log_timestamp" < "$now_time" ]] && echo "$line" | grep -q "\[SUCCESS\]"; then
+        # Increment the success count for each success
+        ((success_count++))
+
+        # Extract the success message and the CRON ID from the log entry
+        cron_id=$(echo "$line" | grep -oP 'CRON\[\K\d+')
+        success_msg=$(echo "$line" | sed -n 's/.*\[SUCCESS\]:\(.*\)CRON\[[0-9]*\] finished.*/\1/p' | sed 's/[[:space:]]*$//')
+
+        # Collect all lines for success in the last 61 seconds
+        success_lines="$success_lines
+cronjob_success_details{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", message=\"$success_msg\", exit_code=\"0\"} 1"
+    fi
+done < <(tail -n 500 "$SUCCESS_LOGS")
+
+success_details=${success_lines:-""}  # Handle empty successes
+
 # Write the metrics to Node Exporter textfile collector
 cat <<EOF > /var/lib/node_exporter/textfile_collector/cron_metrics.prom
 # HELP cronjob_success_count Number of successful cron jobs in the last 61 seconds
@@ -102,6 +144,10 @@ $error_details
 # HELP cronjob_commands_executed Details of commands executed by cron jobs (timestamp and command)
 # TYPE cronjob_commands_executed gauge
 $commands_executed
+
+# HELP cronjob_success_details Success details of cron jobs (timestamp, success message, and exit code)
+# TYPE cronjob_success_details gauge
+$success_details
 EOF
 
 # Optional: Output the error details to the console (for debugging)
