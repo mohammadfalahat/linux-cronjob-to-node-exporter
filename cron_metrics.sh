@@ -57,7 +57,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
         # Format error details for Prometheus with the log timestamp and cron_id
         error_lines="$error_lines
-cronjob_error_details{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", message=\"$error_msg\", exit_code=\"$exit_code\"} 1"
+cronjob_error_details{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", message=\"$error_msg\", exit_code=\"$exit_code\"} $exit_code"
     fi
 done < <(tail -n 500 "$ERROR_LOGS")
 
@@ -121,7 +121,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
         # Collect all lines for success in the last 61 seconds
         success_lines="$success_lines
-cronjob_success_details{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", message=\"$success_msg\", exit_code=\"0\"} 1"
+cronjob_success_details{timestamp=\"$log_timestamp\", cron_id=\"$cron_id\", message=\"$success_msg\", exit_code=\"0\"} 0"
     fi
 done < <(tail -n 500 "$SUCCESS_LOGS")
 
