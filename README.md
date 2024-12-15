@@ -25,7 +25,7 @@ sudo mv cron_metrics.sh /usr/bin/cron_metrics
 # Add metrics updater to `crontab`
 add cronjob with `crontab -e` or `sudo vi /etc/crontab`
 ```
-* * * * * /usr/bin/cron_metrics  > /tmp/cron_$$.log 2>&1; /usr/bin/cron_tracker $? $$ < /tmp/cron_$$.log
+* * * * * root /usr/bin/cron_metrics  > /tmp/cron_$$.log 2>&1; /usr/bin/cron_tracker $? $$ < /tmp/cron_$$.log
 ```
 
 # Config Node_Exporter
@@ -42,7 +42,7 @@ you have to add this code to end of each cronjob command:
 ```
 ```
 # for example turn:
-* * * * * /usr/bin/cron_metrics
+* * * * * root /usr/bin/cron_metrics
 to
-* * * * * /usr/bin/cron_metrics  > /tmp/cron_$$.log 2>&1; /usr/bin/cron_tracker $? $$ < /tmp/cron_$$.log
+* * * * * root /usr/bin/cron_metrics  > /tmp/cron_$$.log 2>&1; /usr/bin/cron_tracker $? $$ < /tmp/cron_$$.log
 ```
