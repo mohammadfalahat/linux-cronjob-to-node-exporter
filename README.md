@@ -10,6 +10,7 @@
 
 # Enable Cron logs
 ```
+grep -qF '$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat' /etc/rsyslog.conf || echo '$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat' >> /etc/rsyslog.conf
 sudo sed -i 's/^#cron\.\*/cron.*/' /etc/rsyslog.d/50-default.conf
 sudo systemctl restart rsyslog
 ```
