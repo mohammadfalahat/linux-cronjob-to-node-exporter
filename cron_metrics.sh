@@ -2,20 +2,20 @@
 # Script to collect cron job metrics for the last 61 seconds, including error details, execution times, and commands executed
 
 # Get the timestamp for 61 seconds ago
-current_time=$(date "+%b %d %H:%M" -d "61 seconds ago")
+start_time=$(date --date="61 seconds ago" "+%Y-%m-%dT%H:%M:%S")
+# Get the current time
+end_time=$(date "+%Y-%m-%dT%H:%M:%S")
 
-# Get the current time for logging the current log's entries
-now_time=$(date "+%b %d %H:%M")
-
-# Filter cron.log entries from the last 61 seconds and only get CRON-related lines
-log_entries=$(awk -v start_time="$current_time" -v end_time="$now_time" '
-    {
-        log_timestamp = $1" "$2" "$3
-        if (log_timestamp >= start_time && log_timestamp <= end_time && /CRON/) {
-            print
-        }
+# Filter cron logs using precise time comparison
+log_entries=$(awk -v start_time="$start_time" -v end_time="$end_time" '
+{
+    # Extract the timestamp from the log
+    match($0, /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}/, timestamp);
+    if (timestamp[0] >= start_time && timestamp[0] <= end_time && /CRON/) {
+        print
     }
-' /var/log/cron.log)
+}
+' /var/log/syslog)  # Change /var/log/syslog to the correct log file path
 
 # Count the number of cron jobs that ran in the last 61 seconds (only non-empty CRON entries)
 total_count=$(echo "$log_entries" | tr -s '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | wc -l)
