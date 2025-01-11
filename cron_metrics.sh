@@ -31,39 +31,19 @@ process_iso8601_logs() {
             print
         }
     }
-    ' /var/log/syslog | sed 's/^<[^>]*>//'
+    ' /var/log/cron.log | sed 's/^<[^>]*>//'
 }
 
 # Define function to process traditional formatted logs
 process_traditional_logs() {
-    awk -v start_time="$start_syslog_time" -v end_time="$end_syslog_time" '
-    BEGIN {
-        # Convert start and end times to epoch seconds for comparison
-        cmd = "date -d \"" start_time "\" +%s"
-        cmd | getline start_epoch
-        close(cmd)
-
-        cmd = "date -d \"" end_time "\" +%s"
-        cmd | getline end_epoch
-        close(cmd)
-    }
+    awk -v start_time="$current_time" -v end_time="$now_time" '
     {
-        # Parse traditional syslog timestamp and convert to epoch seconds
-        split($0, fields, " ")
-        month = fields[1]
-        day = fields[2]
-        time = fields[3]
-        year = strftime("%Y") # Assume current year
-        cmd = "date -d \"" month " " day " " year " " time "\" +%s"
-        cmd | getline log_epoch
-        close(cmd)
-
-        # Check if log is within the specified time range
-        if (log_epoch >= start_epoch && log_epoch <= end_epoch && /CRON/) {
+        log_timestamp = $1" "$2" "$3
+        if (log_timestamp >= start_time && log_timestamp <= end_time && /CRON/) {
             print
         }
     }
-    ' /var/log/syslog
+    ' /var/log/cron.log
 }
 
 # Main logic to detect and process logs
