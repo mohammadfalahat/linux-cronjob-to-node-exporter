@@ -9,16 +9,77 @@ now_time=$(date "+%b %d %H:%M")
 start_syslog_time=$(date --date="61 seconds ago" "+%Y-%m-%dT%H:%M:%S")
 end_syslog_time=$(date "+%Y-%m-%dT%H:%M:%S")
 
-# Filter cron logs using precise time comparison
-log_entries=$(awk -v start_time="$start_syslog_time" -v end_time="$end_syslog_time" '
-{
-    # Extract the timestamp from the log
-    match($0, /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}/, timestamp);
-    if (timestamp[0] >= start_time && timestamp[0] <= end_time && /CRON/) {
-        print
-    }
+detect_format() {
+    # Read the first non-empty line of the syslog file
+    local first_line=$(grep -m1 -v '^$' /var/log/syslog)
+
+    if [[ $first_line =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2} ]]; then
+        echo "ISO8601"
+    elif [[ $first_line =~ ^[A-Z][a-z]{2}\ +[0-9]+\ +[0-9]{2}:[0-9]{2}:[0-9]{2} ]]; then
+        echo "Traditional"
+    else
+        echo "Unknown"
+    fi
 }
-' /var/log/syslog)
+
+# Define function to process ISO 8601 formatted logs
+process_iso8601_logs() {
+    awk -v start_time="$start_syslog_time" -v end_time="$end_syslog_time" '
+    {
+        match($0, /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}/, timestamp);
+        if (timestamp[0] >= start_time && timestamp[0] <= end_time && /CRON/) {
+            print
+        }
+    }
+    ' /var/log/syslog | sed 's/^<[^>]*>//'
+}
+
+# Define function to process traditional formatted logs
+process_traditional_logs() {
+    awk -v start_time="$start_syslog_time" -v end_time="$end_syslog_time" '
+    BEGIN {
+        # Convert start and end times to epoch seconds for comparison
+        cmd = "date -d \"" start_time "\" +%s"
+        cmd | getline start_epoch
+        close(cmd)
+
+        cmd = "date -d \"" end_time "\" +%s"
+        cmd | getline end_epoch
+        close(cmd)
+    }
+    {
+        # Parse traditional syslog timestamp and convert to epoch seconds
+        split($0, fields, " ")
+        month = fields[1]
+        day = fields[2]
+        time = fields[3]
+        year = strftime("%Y") # Assume current year
+        cmd = "date -d \"" month " " day " " year " " time "\" +%s"
+        cmd | getline log_epoch
+        close(cmd)
+
+        # Check if log is within the specified time range
+        if (log_epoch >= start_epoch && log_epoch <= end_epoch && /CRON/) {
+            print
+        }
+    }
+    ' /var/log/syslog
+}
+
+# Main logic to detect and process logs
+format=$(detect_format)
+log_entries=""
+
+if [[ $format == "ISO8601" ]]; then
+    echo "Detected ISO 8601 format. Processing logs..."
+    log_entries=$(process_iso8601_logs)
+elif [[ $format == "Traditional" ]]; then
+    echo "Detected Traditional format. Processing logs..."
+    log_entries=$(process_traditional_logs)
+else
+    echo "Unknown log format. Exiting."
+    exit 1
+fi
 
 # Count the number of cron jobs that ran in the last 61 seconds (only non-empty CRON entries)
 total_count=$(echo "$log_entries" | tr -s '\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' | wc -l)
