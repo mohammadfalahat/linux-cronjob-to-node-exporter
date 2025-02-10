@@ -12,6 +12,8 @@
 ```
 grep -qF '$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat' /etc/rsyslog.conf || echo '$ActionFileDefaultTemplate RSYSLOG_TraditionalFileFormat' >> /etc/rsyslog.conf
 sudo sed -i 's/^#cron\.\*/cron.*/' /etc/rsyslog.d/50-default.conf
+sudo echo "" >> /var/log/cron.error.log
+sudo echo "" >> /var/log/cron.success.log
 sudo systemctl restart rsyslog
 ```
 
